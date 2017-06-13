@@ -3,11 +3,6 @@ window.botamp = (function() {
 
   var Botamp = function Botamp() {}
 
-  Botamp.prototype.load = function(public_api_key) {
-    api = new XMLHttpRequest();
-    api_key = public_api_key;
-  }
-
   function api_url(resource, id) {
     url = api_base + resource;
     if (id != undefined)
@@ -47,6 +42,11 @@ window.botamp = (function() {
     api.open('PUT', api_url('contacts', id));
     setRequestHeaders();
     api.send(requestBody('contacts', attributes))
+  }
+
+  Botamp.prototype.load = function(public_api_key) {
+    api = new XMLHttpRequest();
+    api_key = public_api_key;
   }
 
   Botamp.prototype.identify = function() {
