@@ -1,5 +1,5 @@
 window.botamp = (function() {
-  var api, api_key, page_id, api_base = 'https://app.botamp.com/api/v1/';
+  var api, api_key, page_id, promise, api_base = 'https://app.botamp.com/api/v1/';
 
   var Botamp = function Botamp() {}
 
@@ -10,13 +10,13 @@ window.botamp = (function() {
     return url;
   }
 
-  function setRequestHeaders() {
+  function set_request_headers() {
     api.setRequestHeader('Content-Type', 'application/vnd.api+json');
     api.setRequestHeader('Authorization', "Basic " + btoa(api_key + ':'));
     api.withCredentials = true;
   }
 
-  function requestBody(resource, attributes) {
+  function request_body(resource, attributes) {
     body = {
       'data': {
         'type': resource,
@@ -32,20 +32,24 @@ window.botamp = (function() {
   }
 
   function create_contact(attributes) {
-    api.open('POST', api_url('contacts'));
-    setRequestHeaders();
-    api.onreadystatechange = function() {
-      if(api.readyState == 4 && (api.status === 200 || api.status === 201)) {
-        localStorage.setItem(contact_id_key(), JSON.parse(api.responseText)['data']['id'])
+    promise.then(function() {
+      api.open('POST', api_url('contacts'));
+      set_request_headers();
+      api.onload = function() {
+        if(api.status === 201) {
+          localStorage.setItem(contact_id_key(), JSON.parse(api.responseText)['data']['id'])
+        }
       }
-    }
-    api.send(requestBody('contacts', attributes))
+      api.send(request_body('contacts', attributes))
+    })
   }
 
   function update_contact(id, attributes) {
-    api.open('PUT', api_url('contacts', id));
-    setRequestHeaders();
-    api.send(requestBody('contacts', attributes))
+    promise.then(function(){
+      api.open('PUT', api_url('contacts', id));
+      set_request_headers();
+      api.send(request_body('contacts', attributes))
+    })
   }
 
   Botamp.prototype.load = function(public_api_key) {
@@ -53,14 +57,20 @@ window.botamp = (function() {
 
     api = new XMLHttpRequest();
 
-    api.open('GET', api_url('me'), true);
-    api.onreadystatechange = function() {
-      if(api.readyState == 4 && api.status == 200) {
-        page_id = JSON.parse(api.responseText)['data']['id'];
+    promise = new Promise(function(resolve, reject){
+      api.open('GET', api_url('me'), true);
+      api.onload = function() {
+        if(api.status == 200) {
+          page_id = JSON.parse(api.responseText)['data']['id'];
+          resolve();
+        }
+        else {
+          reject();
+        }
       }
-    }
-    setRequestHeaders();
-    api.send();
+      set_request_headers();
+      api.send();
+    })
   }
 
   Botamp.prototype.identify = function() {
