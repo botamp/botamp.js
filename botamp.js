@@ -68,8 +68,16 @@ window.botamp = (function() {
           reject();
         }
       }
+
+      api.onerror = function() {
+        reject();
+      }
       set_request_headers();
       api.send();
+    })
+
+    promise.catch(function(error) {
+      throw error;
     })
   }
 
