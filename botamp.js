@@ -1,6 +1,20 @@
 window.botamp = (function() {
   var api, api_key, page_id, promise, api_base = 'https://app.botamp.com/api/v1/';
 
+  window.onclick = function(e) {
+    href = e.target.getAttribute('href')
+
+    if (!(e.target.tagName.toLowerCase() == 'a' && href.includes('m.me/')))
+      return;
+
+    var saved_id = saved_contact_id();
+    if (saved_id == null)
+      return;
+
+    e.preventDefault();
+    document.location.href = href + '?ref=' + encodeURIComponent('botamp?btp_cid=' + saved_id);
+  }
+
   var Botamp = function Botamp() {}
 
   function api_url(resource, id) {
@@ -29,6 +43,10 @@ window.botamp = (function() {
 
   function contact_id_key() {
     return 'botamp_' + page_id + '_contact_id';
+  }
+
+  function saved_contact_id() {
+    return localStorage.getItem(contact_id_key());
   }
 
   function create_contact(attributes) {
@@ -83,7 +101,7 @@ window.botamp = (function() {
 
   Botamp.prototype.identify = function() {
     if (arguments.length == 1) {
-      var saved_id = localStorage.getItem(contact_id_key())
+      var saved_id = saved_contact_id();
       if (saved_id == null)
         create_contact(arguments[0])
       else
