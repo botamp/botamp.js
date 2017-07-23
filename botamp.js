@@ -80,6 +80,11 @@ window.botamp = (function() {
       api.onload = function() {
         if(api.status == 200) {
           page_id = JSON.parse(api.responseText)['data']['id'];
+
+          match_contact_id = window.location.href.match(/btp_cid=(\d+)/);
+          if (match_contact_id != null)
+            localStorage.setItem(contact_id_key(), match_contact_id[1]);
+
           resolve();
         }
         else {
