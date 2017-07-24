@@ -6,7 +6,7 @@ Use this library on your website to identify your Botamp contacts.
 
 1. Include the script in your HTML file
 ```
-<script src="botamp.js"></script>
+<script async src="https://cdn.botamp.com/botamp.js"></script>
 ```
 2. Initialize the library
 ```
