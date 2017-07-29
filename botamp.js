@@ -126,14 +126,10 @@ window.botamp = (function() {
   }
 
   Botamp.prototype.track = function(name, properties) {
-    var attributes = {name: name};
-    if (properties != undefined)
-      attributes.properties = properties;
-
     promise.then(function() {
       api.open('POST', api_url('contacts', saved_contact_id(), 'events'));
       set_request_headers();
-      api.send(request_body('events', attributes))
+      api.send(request_body('events', {name: name, properties: properties}))
     })
   }
 
