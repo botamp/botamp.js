@@ -17,10 +17,12 @@ window.botamp = (function() {
 
   var Botamp = function Botamp() {}
 
-  function api_url(resource, id) {
+  function api_url(resource, id, sub_resource) {
     url = api_base + resource;
     if (id != undefined)
       url += ('/' + id);
+    if (sub_resource != undefined)
+      url += ('/' + sub_resource)
     return url;
   }
 
@@ -121,6 +123,19 @@ window.botamp = (function() {
     } else if (arguments.length == 2) {
       update_contact(arguments[0], arguments[1])
     }
+  }
+
+  Botamp.prototype.track = function(name, properties) {
+    var attributes = {};
+    if (properties != undefined)
+      attributes = properties;
+    attributes['name'] = name;
+
+    promise.then(function() {
+      api.open('POST', api_url('contacts', saved_contact_id(), 'events'));
+      set_request_headers();
+      api.send(request_body('events', attributes))
+    })
   }
 
   return new Botamp();
