@@ -1,6 +1,6 @@
 var api, api_key, page_id, promise, api_base = 'https://app.botamp.com/api/v1/';
 
-window.onclick = function(e) {
+window.addEventListener('click', function(e) {
   href = e.target.getAttribute('href')
 
   if (!(e.target.tagName.toLowerCase() == 'a' && href.includes('m.me/')))
@@ -12,7 +12,7 @@ window.onclick = function(e) {
 
   e.preventDefault();
   document.location.href = href + '?ref=' + encodeURIComponent('botamp?btp_cid=' + saved_id);
-}
+}, false)
 
 var Botamp = function Botamp() {}
 
