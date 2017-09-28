@@ -1273,135 +1273,320 @@ _export(_export.S + _export.F * !(USE_NATIVE && _iterDetect(function (iter) {
   }
 });
 
+function AwaitValue(value) {
+  this.value = value;
+}
+
+function AsyncGenerator(gen) {
+  var front, back;
+
+  function send(key, arg) {
+    return new Promise(function (resolve, reject) {
+      var request = {
+        key: key,
+        arg: arg,
+        resolve: resolve,
+        reject: reject,
+        next: null
+      };
+
+      if (back) {
+        back = back.next = request;
+      } else {
+        front = back = request;
+        resume(key, arg);
+      }
+    });
+  }
+
+  function resume(key, arg) {
+    try {
+      var result = gen[key](arg);
+      var value = result.value;
+
+      if (value instanceof AwaitValue) {
+        Promise.resolve(value.value).then(function (arg) {
+          resume("next", arg);
+        }, function (arg) {
+          resume("throw", arg);
+        });
+      } else {
+        settle(result.done ? "return" : "normal", result.value);
+      }
+    } catch (err) {
+      settle("throw", err);
+    }
+  }
+
+  function settle(type, value) {
+    switch (type) {
+      case "return":
+        front.resolve({
+          value: value,
+          done: true
+        });
+        break;
+
+      case "throw":
+        front.reject(value);
+        break;
+
+      default:
+        front.resolve({
+          value: value,
+          done: false
+        });
+        break;
+    }
+
+    front = front.next;
+
+    if (front) {
+      resume(front.key, front.arg);
+    } else {
+      back = null;
+    }
+  }
+
+  this._invoke = send;
+
+  if (typeof gen.return !== "function") {
+    this.return = undefined;
+  }
+}
+
+if (typeof Symbol === "function" && Symbol.asyncIterator) {
+  AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+    return this;
+  };
+}
+
+AsyncGenerator.prototype.next = function (arg) {
+  return this._invoke("next", arg);
+};
+
+AsyncGenerator.prototype.throw = function (arg) {
+  return this._invoke("throw", arg);
+};
+
+AsyncGenerator.prototype.return = function (arg) {
+  return this._invoke("return", arg);
+};
+
+
+
+
+
+
+
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+
+var classCallCheck = _classCallCheck;
+
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
+
+var createClass = _createClass;
+
+var apiBase = 'https://app.botamp.com/api/v1/';
 var api;
-var api_key;
-var page_id;
+var apiKey;
+var pageId;
 var promise;
-var api_base = 'https://app.botamp.com/api/v1/';
-window.addEventListener('click', function (e) {
-  href = e.target.getAttribute('href');
-  if (!(e.target.tagName.toLowerCase() == 'a' && href.includes('m.me/'))) return;
-  var saved_id = saved_contact_id();
-  if (saved_id == null) return;
-  e.preventDefault();
-  document.location.href = href + '?ref=' + encodeURIComponent('botamp?btp_cid=' + saved_id);
-}, false);
 
-var Botamp = function Botamp() {};
+function apiUrl(resource, id, subResource) {
+  var url = apiBase + resource;
 
-function api_url(resource, id, sub_resource) {
-  url = api_base + resource;
-  if (id != undefined) url += '/' + id;
-  if (sub_resource != undefined) url += '/' + sub_resource;
+  if (id) {
+    url += '/' + id;
+  }
+
+  if (subResource) {
+    url += '/' + subResource;
+  }
+
   return url;
 }
 
-function set_request_headers() {
+function setRequestHeaders() {
   api.setRequestHeader('Content-Type', 'application/vnd.api+json');
-  api.setRequestHeader('Authorization', "Basic " + btoa(api_key + ':'));
+  api.setRequestHeader('Authorization', 'Basic ' + btoa(apiKey + ':'));
   api.withCredentials = true;
 }
 
-function request_body(resource, attributes) {
-  body = {
-    'data': {
-      'type': resource,
-      'attributes': attributes
+function requestBody(resource, attributes) {
+  var body = {
+    data: {
+      type: resource,
+      attributes: attributes
     }
   };
   return JSON.stringify(body);
 }
 
-function contact_id_key() {
-  return 'botamp_' + page_id + '_contact_id';
+function contactIdKey() {
+  return 'botamp_' + pageId + '_contact_id';
 }
 
-function saved_contact_id() {
-  return localStorage.getItem(contact_id_key());
+function savedContactId() {
+  return localStorage.getItem(contactIdKey());
 }
 
-function create_contact(attributes) {
-  promise.then(function () {
-    api.open('POST', api_url('contacts'));
-    set_request_headers();
+function createContact(attributes) {
+  promise = promise.then(function () {
+    api.open('POST', apiUrl('contacts'));
 
     api.onload = function () {
       if (api.status === 201) {
-        localStorage.setItem(contact_id_key(), JSON.parse(api.responseText)['data']['id']);
+        localStorage.setItem(contactIdKey(), JSON.parse(api.responseText)['data']['id']);
       }
     };
 
-    api.send(request_body('contacts', attributes));
+    setRequestHeaders();
+    api.send(requestBody('contacts', attributes));
   });
 }
 
-function update_contact(id, attributes) {
-  promise.then(function () {
-    api.open('PUT', api_url('contacts', id));
-    set_request_headers();
-    api.send(request_body('contacts', attributes));
+function updateContact(id, attributes) {
+  promise = promise.then(function () {
+    api.open('PUT', apiUrl('contacts', id));
+    setRequestHeaders();
+    api.send(requestBody('contacts', attributes));
   });
 }
 
-Botamp.prototype.load = function (public_api_key) {
-  api_key = public_api_key;
-  api = new XMLHttpRequest();
-  promise = new Promise(function (resolve, reject) {
-    api.open('GET', api_url('me'), true);
+function redirectToTaggedHref(e) {
+  var href = e.target.getAttribute('href');
 
-    api.onload = function () {
-      if (api.status == 200) {
-        page_id = JSON.parse(api.responseText)['data']['id'];
-        match_contact_id = window.location.href.match(/btp_cid=(\d+)/);
-
-        if (match_contact_id != null) {
-          api.open('GET', api_url('contacts', match_contact_id[1]), true);
-
-          api.onload = function () {
-            if (api.status == 200) localStorage.setItem(contact_id_key(), match_contact_id[1]);
-          };
-
-          set_request_headers();
-          api.send();
-        }
-
-        resolve();
-      } else {
-        reject();
-      }
-    };
-
-    api.onerror = function () {
-      reject();
-    };
-
-    set_request_headers();
-    api.send();
-  });
-  promise.catch(function (error) {
-    throw error;
-  });
-};
-
-Botamp.prototype.identify = function () {
-  if (arguments.length == 1) {
-    var saved_id = saved_contact_id();
-    if (saved_id == null) create_contact(arguments[0]);else update_contact(saved_id, arguments[0]);
-  } else if (arguments.length == 2) {
-    update_contact(arguments[0], arguments[1]);
+  if (!(e.target.tagName.toLowerCase() === 'a' && href.includes('m.me/'))) {
+    return;
   }
-};
 
-Botamp.prototype.track = function (name, properties) {
-  promise.then(function () {
-    api.open('POST', api_url('contacts', saved_contact_id(), 'events'));
-    set_request_headers();
-    api.send(request_body('events', {
-      name: name,
-      properties: properties
-    }));
-  });
-};
+  var savedId = savedContactId();
+
+  if (!savedId) {
+    return;
+  }
+
+  e.preventDefault();
+  document.location.href = href + '?ref=' + encodeURIComponent('botamp?btp_cid=' + savedId);
+}
+
+var Botamp =
+/*#__PURE__*/
+function () {
+  function Botamp() {
+    classCallCheck(this, Botamp);
+    var botamp = window.botamp || [];
+
+    while (botamp.length) {
+      this.push(botamp.shift());
+    }
+
+    window.addEventListener('click', redirectToTaggedHref, false);
+  }
+
+  createClass(Botamp, [{
+    key: "push",
+    value: function push(param) {
+      if (this[param[0]]) {
+        this[param[0]].apply(this, param[1]);
+      } else {
+        throw new Error("Function '".concat(param[0], "' does not exist.'"));
+      }
+    }
+  }, {
+    key: "load",
+    value: function load(publicApiKey) {
+      apiKey = publicApiKey;
+      api = new XMLHttpRequest();
+      promise = new Promise(function (resolve, reject) {
+        api.open('GET', apiUrl('me'), true);
+
+        api.onload = function () {
+          if (api.status === 200) {
+            pageId = JSON.parse(api.responseText)['data']['id'];
+            var matchContactId = window.location.href.match(/btp_cid=(\d+)/);
+
+            if (matchContactId) {
+              api.open('GET', apiUrl('contacts', matchContactId[1]), true);
+
+              api.onload = function () {
+                if (api.status === 200) {
+                  localStorage.setItem(contactIdKey(), matchContactId[1]);
+                }
+              };
+
+              setRequestHeaders();
+              api.send();
+            }
+
+            resolve();
+          } else {
+            reject(api.responseText);
+          }
+        };
+
+        api.onerror = function () {
+          reject();
+        };
+
+        setRequestHeaders();
+        api.send();
+      });
+      promise = promise.catch(function (error) {
+        if (error) {
+          console.log(error);
+        }
+      });
+    }
+  }, {
+    key: "identify",
+    value: function identify() {
+      if (arguments.length === 1) {
+        var savedId = savedContactId();
+
+        if (savedId) {
+          updateContact(savedId, arguments[0]);
+        } else {
+          createContact(arguments[0]);
+        }
+      } else if (arguments.length === 2) {
+        updateContact(arguments[0], arguments[1]);
+      }
+    }
+  }, {
+    key: "track",
+    value: function track(name, properties) {
+      promise = promise.then(function () {
+        api.open('POST', apiUrl('contacts', savedContactId(), 'events'));
+        setRequestHeaders();
+        api.send(requestBody('events', {
+          name: name,
+          properties: properties
+        }));
+      });
+    }
+  }]);
+  return Botamp;
+}();
 
 window.botamp = new Botamp();
 
