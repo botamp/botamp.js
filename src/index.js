@@ -1,3 +1,5 @@
+import 'core-js/es6/promise';
+
 var api, api_key, page_id, promise, api_base = 'https://app.botamp.com/api/v1/';
 
 window.addEventListener('click', function(e) {
@@ -132,4 +134,4 @@ Botamp.prototype.track = function(name, properties) {
   })
 }
 
-module.export = new Botamp()
+window.botamp = new Botamp()

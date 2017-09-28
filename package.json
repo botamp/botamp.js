@@ -6,14 +6,28 @@
   "repository": "git@github.com:botamp/botamp.js.git",
   "author": "Botamp <support@botamp.com>",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "rollup-plugin-commonjs": "^8.2.1"
+  },
   "devDependencies": {
-    "uglifyjs-webpack-plugin": "^0.4.6",
-    "webpack": "^3.6.0",
-    "webpack-merge": "^4.1.0"
+    "babel-cli": "^7.0.0-beta.2",
+    "babel-eslint": "^8.0.1",
+    "babel-plugin-external-helpers": "^7.0.0-beta.2",
+    "babel-preset-env": "^2.0.0-beta.2",
+    "eslint": "^4.7.2",
+    "eslint-plugin-compat": "^1.0.4",
+    "nodemon": "^1.12.1",
+    "npm-run-all": "^4.1.1",
+    "rollup": "^0.50.0",
+    "rollup-plugin-babel": "^3.0.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "uglify-js": "^3.1.2"
   },
   "scripts": {
-    "build": "webpack",
-    "watch": "webpack --watch"
+    "dist": "npm-run-all lint compile minify",
+    "lint": "eslint src/",
+    "compile": "rollup -c",
+    "minify": "uglifyjs --output dist/botamp.min.js dist/botamp.js",
+    "watch": "nodemon --ignore dist/ -e js -x \"npm run dist\""
   }
 }
