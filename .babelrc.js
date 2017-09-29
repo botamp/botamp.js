@@ -1,6 +1,8 @@
 module.exports = {
-  presets: [
-    ['env', { modules: false }]
-  ],
-  plugins: ['external-helpers']
+  env: {
+    development: {
+      presets: [['env', { modules: false, useBuiltIns: 'usage' }]],
+      plugins: ['external-helpers']
+    }
+  }
 };

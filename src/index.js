@@ -1,5 +1,3 @@
-import 'core-js/es6/promise'
-
 const apiBase = 'https://app.botamp.com/api/v1/'
 let api, apiKey, pageId, promise
 
