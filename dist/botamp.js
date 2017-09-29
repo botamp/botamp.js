@@ -1078,11 +1078,11 @@ function apiUrl(resource, id, subResource) {
   var url = apiBase + resource;
 
   if (id) {
-    url += '/' + id;
+    url += "/".concat(id);
   }
 
   if (subResource) {
-    url += '/' + subResource;
+    url += "/".concat(subResource);
   }
 
   return url;
@@ -1090,22 +1090,21 @@ function apiUrl(resource, id, subResource) {
 
 function setRequestHeaders() {
   api.setRequestHeader('Content-Type', 'application/vnd.api+json');
-  api.setRequestHeader('Authorization', 'Basic ' + btoa(apiKey + ':'));
+  api.setRequestHeader('Authorization', 'Basic ' + btoa("".concat(apiKey, ":")));
   api.withCredentials = true;
 }
 
-function requestBody(resource, attributes) {
-  var body = {
+function requestBody(type, attributes) {
+  return JSON.stringify({
     data: {
-      type: resource,
+      type: type,
       attributes: attributes
     }
-  };
-  return JSON.stringify(body);
+  });
 }
 
 function contactIdKey() {
-  return 'botamp_' + pageId + '_contact_id';
+  return "botamp_".concat(pageId, "_contact_id");
 }
 
 function savedContactId() {
@@ -1144,12 +1143,10 @@ function redirectToTaggedHref(e) {
 
   var savedId = savedContactId();
 
-  if (!savedId) {
-    return;
+  if (savedId) {
+    e.preventDefault();
+    document.location.href = "".concat(href, "?ref=") + encodeURIComponent("botamp?btp_cid=".concat(savedId));
   }
-
-  e.preventDefault();
-  document.location.href = href + '?ref=' + encodeURIComponent('botamp?btp_cid=' + savedId);
 }
 
 var Botamp =

@@ -5,11 +5,11 @@ function apiUrl (resource, id, subResource) {
   let url = apiBase + resource
 
   if (id) {
-    url += ('/' + id)
+    url += (`/${id}`)
   }
 
   if (subResource) {
-    url += ('/' + subResource)
+    url += (`/${subResource}`)
   }
 
   return url
@@ -17,23 +17,16 @@ function apiUrl (resource, id, subResource) {
 
 function setRequestHeaders () {
   api.setRequestHeader('Content-Type', 'application/vnd.api+json')
-  api.setRequestHeader('Authorization', 'Basic ' + btoa(apiKey + ':'))
+  api.setRequestHeader('Authorization', 'Basic ' + btoa(`${apiKey}:`))
   api.withCredentials = true
 }
 
-function requestBody (resource, attributes) {
-  let body = {
-    data: {
-      type: resource,
-      attributes: attributes
-    }
-  }
-
-  return JSON.stringify(body)
+function requestBody (type, attributes) {
+  return JSON.stringify({ data: { type, attributes } })
 }
 
 function contactIdKey () {
-  return 'botamp_' + pageId + '_contact_id'
+  return `botamp_${pageId}_contact_id`
 }
 
 function savedContactId () {
@@ -41,10 +34,10 @@ function savedContactId () {
 }
 
 function createContact (attributes) {
-  promise = promise.then(function () {
+  promise = promise.then(() => {
     api.open('POST', apiUrl('contacts'))
 
-    api.onload = function () {
+    api.onload = () => {
       if (api.status === 201) {
         localStorage.setItem(contactIdKey(), JSON.parse(api.responseText)['data']['id'])
       }
@@ -56,7 +49,7 @@ function createContact (attributes) {
 }
 
 function updateContact (id, attributes) {
-  promise = promise.then(function () {
+  promise = promise.then(() => {
     api.open('PUT', apiUrl('contacts', id))
 
     setRequestHeaders()
@@ -65,21 +58,19 @@ function updateContact (id, attributes) {
 }
 
 function redirectToTaggedHref (e) {
-  let href = e.target.getAttribute('href')
+  const href = e.target.getAttribute('href')
 
   if (!(e.target.tagName.toLowerCase() === 'a' && href.includes('m.me/'))) {
     return
   }
 
-  let savedId = savedContactId()
+  const savedId = savedContactId()
 
-  if (!savedId) {
-    return
+  if (savedId) {
+    e.preventDefault()
+
+    document.location.href = `${href}?ref=` + encodeURIComponent(`botamp?btp_cid=${savedId}`)
   }
-
-  e.preventDefault()
-
-  document.location.href = href + '?ref=' + encodeURIComponent('botamp?btp_cid=' + savedId)
 }
 
 class Botamp {
@@ -106,19 +97,19 @@ class Botamp {
 
     api = new XMLHttpRequest()
 
-    promise = new Promise(function (resolve, reject) {
+    promise = new Promise((resolve, reject) => {
       api.open('GET', apiUrl('me'), true)
 
-      api.onload = function () {
+      api.onload = () => {
         if (api.status === 200) {
           pageId = JSON.parse(api.responseText)['data']['id']
 
-          let matchContactId = window.location.href.match(/btp_cid=(\d+)/)
+          const matchContactId = window.location.href.match(/btp_cid=(\d+)/)
 
           if (matchContactId) {
             api.open('GET', apiUrl('contacts', matchContactId[1]), true)
 
-            api.onload = function () {
+            api.onload = () => {
               if (api.status === 200) {
                 localStorage.setItem(contactIdKey(), matchContactId[1])
               }
@@ -134,15 +125,13 @@ class Botamp {
         }
       }
 
-      api.onerror = function () {
-        reject()
-      }
+      api.onerror = () => { reject() }
 
       setRequestHeaders()
       api.send()
     })
 
-    promise = promise.catch(function (error) {
+    promise = promise.catch(error => {
       if (error) {
         console.log(error)
       }
@@ -151,7 +140,7 @@ class Botamp {
 
   identify () {
     if (arguments.length === 1) {
-      let savedId = savedContactId()
+      const savedId = savedContactId()
 
       if (savedId) {
         updateContact(savedId, arguments[0])
@@ -164,7 +153,7 @@ class Botamp {
   }
 
   track (name, properties) {
-    promise = promise.then(function () {
+    promise = promise.then(() => {
       api.open('POST', apiUrl('contacts', savedContactId(), 'events'))
 
       setRequestHeaders()
