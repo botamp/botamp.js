@@ -1,5 +1,5 @@
 const apiBase = 'https://app.botamp.com/api/v1/'
-let api, apiKey, pageId, promise
+let api, apiKey, pageId, promise, urlParams
 
 function apiUrl (resource, id, subResource) {
   let url = apiBase + resource
@@ -29,7 +29,20 @@ function contactIdKey () {
   return `botamp_${pageId}_contact_id`
 }
 
-function savedContactId () {
+function loadContact (contactId) {
+  api.open('GET', apiUrl('contacts', contactId), true)
+
+  api.onload = () => {
+    if (api.status === 200) {
+      localStorage.setItem(contactIdKey(), contactId)
+    }
+  }
+
+  setRequestHeaders()
+  api.send()
+}
+
+function getContactId () {
   return localStorage.getItem(contactIdKey())
 }
 
@@ -57,6 +70,19 @@ function updateContact (id, attributes) {
   })
 }
 
+function parseUrlParams () {
+  const params = new URLSearchParams(window.location.search)
+
+  urlParams = {}
+
+  for (let pair of params.entries()) {
+    urlParams[pair[0]] = pair[1]
+  }
+
+  params.delete('btp_cid')
+  window.history.replaceState(null, '', `?${params}${window.location.hash}`)
+}
+
 function redirectToTaggedHref (e) {
   const href = e.target.getAttribute('href')
 
@@ -64,12 +90,12 @@ function redirectToTaggedHref (e) {
     return
   }
 
-  const savedId = savedContactId()
+  const contactId = getContactId()
 
-  if (savedId) {
+  if (contactId) {
     e.preventDefault()
 
-    document.location.href = `${href}?ref=` + encodeURIComponent(`botamp?btp_cid=${savedId}`)
+    document.location.href = `${href}?ref=` + encodeURIComponent(`botamp?btp_cid=${contactId}`)
   }
 }
 
@@ -80,6 +106,8 @@ class Botamp {
     while (botamp.length) {
       this.push(botamp.shift())
     }
+
+    parseUrlParams()
 
     window.addEventListener('click', redirectToTaggedHref, false)
   }
@@ -104,19 +132,8 @@ class Botamp {
         if (api.status === 200) {
           pageId = JSON.parse(api.responseText)['data']['id']
 
-          const matchContactId = window.location.href.match(/btp_cid=(\d+)/)
-
-          if (matchContactId) {
-            api.open('GET', apiUrl('contacts', matchContactId[1]), true)
-
-            api.onload = () => {
-              if (api.status === 200) {
-                localStorage.setItem(contactIdKey(), matchContactId[1])
-              }
-            }
-
-            setRequestHeaders()
-            api.send()
+          if (urlParams['btp_cid']) {
+            loadContact(urlParams['btp_cid'])
           }
 
           resolve()
@@ -140,10 +157,10 @@ class Botamp {
 
   identify () {
     if (arguments.length === 1) {
-      const savedId = savedContactId()
+      const contactId = getContactId()
 
-      if (savedId) {
-        updateContact(savedId, arguments[0])
+      if (contactId) {
+        updateContact(contactId, arguments[0])
       } else {
         createContact(arguments[0])
       }
@@ -154,7 +171,7 @@ class Botamp {
 
   track (name, properties) {
     promise = promise.then(() => {
-      api.open('POST', apiUrl('contacts', savedContactId(), 'events'))
+      api.open('POST', apiUrl('contacts', getContactId(), 'events'))
 
       setRequestHeaders()
       api.send(requestBody('events', {name: name, properties: properties}))

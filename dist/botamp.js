@@ -196,15 +196,15 @@ var _fixReWks = function (KEY, length, exec) {
   }
 };
 
-// @@match logic
-_fixReWks('match', 1, function (defined, MATCH, $match) {
-  // 21.1.3.11 String.prototype.match(regexp)
-  return [function match(regexp) {
+// @@search logic
+_fixReWks('search', 1, function (defined, SEARCH, $search) {
+  // 21.1.3.15 String.prototype.search(regexp)
+  return [function search(regexp) {
     'use strict';
     var O = defined(this);
-    var fn = regexp == undefined ? undefined : regexp[MATCH];
-    return fn !== undefined ? fn.call(regexp, O) : new RegExp(regexp)[MATCH](String(O));
-  }, $match];
+    var fn = regexp == undefined ? undefined : regexp[SEARCH];
+    return fn !== undefined ? fn.call(regexp, O) : new RegExp(regexp)[SEARCH](String(O));
+  }, $search];
 });
 
 "use strict";
@@ -1107,7 +1107,20 @@ function contactIdKey() {
   return "botamp_".concat(pageId, "_contact_id");
 }
 
-function savedContactId() {
+function loadContact(contactId) {
+  api.open('GET', apiUrl('contacts', contactId), true);
+
+  api.onload = function () {
+    if (api.status === 200) {
+      localStorage.setItem(contactIdKey(), contactId);
+    }
+  };
+
+  setRequestHeaders();
+  api.send();
+}
+
+function getContactId() {
   return localStorage.getItem(contactIdKey());
 }
 
@@ -1141,11 +1154,11 @@ function redirectToTaggedHref(e) {
     return;
   }
 
-  var savedId = savedContactId();
+  var contactId = getContactId();
 
-  if (savedId) {
+  if (contactId) {
     e.preventDefault();
-    document.location.href = "".concat(href, "?ref=") + encodeURIComponent("botamp?btp_cid=".concat(savedId));
+    document.location.href = "".concat(href, "?ref=") + encodeURIComponent("botamp?btp_cid=".concat(contactId));
   }
 }
 
@@ -1183,19 +1196,13 @@ function () {
         api.onload = function () {
           if (api.status === 200) {
             pageId = JSON.parse(api.responseText)['data']['id'];
-            var matchContactId = window.location.href.match(/btp_cid=(\d+)/);
+            var params = new URLSearchParams(window.location.search);
+            var contactId = params.get('btp_cid');
 
-            if (matchContactId) {
-              api.open('GET', apiUrl('contacts', matchContactId[1]), true);
-
-              api.onload = function () {
-                if (api.status === 200) {
-                  localStorage.setItem(contactIdKey(), matchContactId[1]);
-                }
-              };
-
-              setRequestHeaders();
-              api.send();
+            if (contactId) {
+              params.delete('btp_cid');
+              window.history.replaceState(null, '', "?".concat(params).concat(location.hash));
+              loadContact(contactId);
             }
 
             resolve();
@@ -1221,10 +1228,10 @@ function () {
     key: "identify",
     value: function identify() {
       if (arguments.length === 1) {
-        var savedId = savedContactId();
+        var contactId = getContactId();
 
-        if (savedId) {
-          updateContact(savedId, arguments[0]);
+        if (contactId) {
+          updateContact(contactId, arguments[0]);
         } else {
           createContact(arguments[0]);
         }
@@ -1236,7 +1243,7 @@ function () {
     key: "track",
     value: function track(name, properties) {
       promise = promise.then(function () {
-        api.open('POST', apiUrl('contacts', savedContactId(), 'events'));
+        api.open('POST', apiUrl('contacts', getContactId(), 'events'));
         setRequestHeaders();
         api.send(requestBody('events', {
           name: name,
