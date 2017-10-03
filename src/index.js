@@ -1,3 +1,5 @@
+import 'url-search-params-polyfill'
+
 const apiBase = 'https://app.botamp.com/api/v1/'
 let api, apiKey, pageId, promise, urlParams
 

@@ -6,7 +6,9 @@
   "repository": "git@github.com:botamp/botamp.js.git",
   "author": "Botamp <support@botamp.com>",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "url-search-params-polyfill": "^2.0.1"
+  },
   "devDependencies": {
     "babel-cli": "^7.0.0-beta.2",
     "babel-eslint": "^8.0.1",
